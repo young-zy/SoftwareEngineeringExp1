@@ -1,4 +1,5 @@
 import java.io.File
+import java.io.OutputStreamWriter
 import kotlin.math.exp
 import kotlin.math.abs
 import kotlin.math.pow
@@ -70,8 +71,9 @@ fun calAlpha(ma1:Map<Pair<Int,Int>,Double>,ma2:Map<Pair<Int,Int>,Double>):Double
 
 fun readFile(path:String):Map<Pair<Int,Int>,Double>{
     val res: MutableMap<Pair<Int,Int>, Double> = mutableMapOf()
+    var file: File?
     try {
-        val file = File(path)
+        file = File(path)
         file.forEachLine {
             if(it != "Source,Target,Weight") {
                 val temp = it.split(',')
@@ -87,17 +89,18 @@ fun readFile(path:String):Map<Pair<Int,Int>,Double>{
 }
 
 fun writeFile(ma:Map<Pair<Int,Int>,Double>,path:String){
+    var writer: OutputStreamWriter? = null
     try {
-        val writer = File(path).writer()
+        writer = File(path).writer()
         writer.append("Source,Target,Weight\n")
         ma.forEach {
             writer.append("${it.key.first},${it.key.second},${it.value}\n")
         }
-        writer.close()
     }catch (e:Exception){
         print(e.printStackTrace())
+    }finally {
+        writer?.close()
     }
-
     println("输出到$path")
     println("输出${ma.size}行数据")
 }
