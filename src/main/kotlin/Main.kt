@@ -6,8 +6,6 @@ import kotlin.math.pow
 
 data class Test(val x:Int,val y:Int)
 
-
-
 fun main(){
     val a = Test(1,2)
     val b = Test(1,2)
@@ -43,7 +41,7 @@ fun main(){
 fun sigmoid(x:Double):Double = 1/(1+exp(-x))
 
 fun calAlpha(ma1:Map<Pair<Int,Int>,Double>,ma2:Map<Pair<Int,Int>,Double>):Double{
-    var res = 0.5           //mocked as 0.5
+    var res = 0.0
     val n0 = ma1.size
     var mu = 0.0
     var sig = 0.0
@@ -60,18 +58,18 @@ fun calAlpha(ma1:Map<Pair<Int,Int>,Double>,ma2:Map<Pair<Int,Int>,Double>):Double
         sig += abs(it.value - mu).pow(2)
     }
     sig /= ma2.size
-//    se.forEach{
-//        val it1 = it
-//        se.forEach{
-//            TODO("requirement not acknowledged")
-//        }
-//    }
+    res += n0*n0*(sig+mu.pow(2))
+    ma1.forEach{
+        res+=it.value*it.value
+        res -= 2*it.value*mu
+    }
+    res = n0*n0*sig/res
     return res
 }
 
 fun readFile(path:String):Map<Pair<Int,Int>,Double>{
     val res: MutableMap<Pair<Int,Int>, Double> = mutableMapOf()
-    var file: File?
+    val file: File?
     try {
         file = File(path)
         file.forEachLine {
