@@ -1,8 +1,10 @@
 import java.io.File
 import java.io.OutputStreamWriter
+import kotlin.concurrent.timer
 import kotlin.math.exp
 import kotlin.math.abs
 import kotlin.math.pow
+import kotlin.system.measureTimeMillis
 
 data class Test(val x:Int,val y:Int)
 
@@ -38,8 +40,24 @@ fun main(){
     }
 }
 
+/**
+ * 将实数通过公式：
+ * 1/(1+exp(-x))
+ * 映射到0~1
+ *
+ * @param [x] 待映射的实数
+ * @return 映射完成后的结果
+ */
 fun sigmoid(x:Double):Double = 1/(1+exp(-x))
 
+/**
+ * 通过 [ma1] 和 [ma2] 计算 alpha
+ *
+ *
+ * @param ma1 第一张图。
+ * @param ma2 第二张图。
+ * @return 返回alpha的值
+ */
 fun calAlpha(ma1:Map<Pair<Int,Int>,Double>,ma2:Map<Pair<Int,Int>,Double>):Double{
     var res = 0.0
     val n0 = ma1.size
@@ -67,51 +85,86 @@ fun calAlpha(ma1:Map<Pair<Int,Int>,Double>,ma2:Map<Pair<Int,Int>,Double>):Double
     return res
 }
 
+/**
+ * 从 [path] 读入图到 Map 中
+ * 并将权值sigmoid
+ *
+ * @param [path] 读入的文件路径
+ * @return 返回Sigmoid后的图，以Map的形式
+ */
 fun readFile(path:String):Map<Pair<Int,Int>,Double>{
     val res: MutableMap<Pair<Int,Int>, Double> = mutableMapOf()
-    val file: File?
-    try {
-        file = File(path)
-        file.forEachLine {
-            if(it != "Source,Target,Weight") {
-                val temp = it.split(',')
-                res[Pair<Int,Int>(temp[0].toInt(),temp[1].toInt())] = sigmoid(temp[2].toDouble())
+    var file: File?
+    val time = measureTimeMillis {
+        try {
+            file = File(path)
+            file!!.forEachLine {
+                if(it != "Source,Target,Weight") {
+                    val temp = it.split(',')
+                    res[Pair<Int,Int>(temp[0].toInt(),temp[1].toInt())] = sigmoid(temp[2].toDouble())
+                }
             }
+        }catch (e:Exception){
+            print(e.stackTrace)
         }
-    }catch (e:Exception){
-        print(e.stackTrace)
     }
     println("正在读入$path")
     println("读入${res.size}行数据")
+    println("耗费${time}毫秒")
     return res
 }
 
+/**
+ * 将 [ma] 写入 [path]
+ *
+ * @param [ma] 要写入的图
+ * @param [path] 写入的文件路径
+ */
 fun writeFile(ma:Map<Pair<Int,Int>,Double>,path:String){
     var writer: OutputStreamWriter? = null
-    try {
-        writer = File(path).writer()
-        writer.append("Source,Target,Weight\n")
-        ma.forEach {
-            writer.append("${it.key.first},${it.key.second},${it.value}\n")
+    val time = measureTimeMillis {
+        try {
+            writer = File(path).writer()
+            writer!!.append("Source,Target,Weight\n")
+            ma.forEach {
+                writer!!.append("${it.key.first},${it.key.second},${it.value}\n")
+            }
+        }catch (e:Exception){
+            print(e.printStackTrace())
+        }finally {
+            writer?.close()
         }
-    }catch (e:Exception){
-        print(e.printStackTrace())
-    }finally {
-        writer?.close()
     }
     println("输出到$path")
     println("输出${ma.size}行数据")
+    println("耗费${time}毫秒")
 }
 
+/**
+ * 将 [ma1] 和 [ma2] 通过平滑公式：
+ * MA=α*[ma1]+(1-α)*[ma2]
+ * 合并为一张图。
+ *
+ * @param ma1 第一张图。
+ * @param ma2 第二张图。
+ * @return 返回合并后的图
+ */
 fun merge(ma1:Map<Pair<Int,Int>,Double>,ma2:Map<Pair<Int,Int>,Double>):Map<Pair<Int,Int>,Double>{
-    val alpha = calAlpha(ma1,ma2)
+    var alpha = 0.0
+    var time = measureTimeMillis {
+        alpha = calAlpha(ma1,ma2)
+    }
+    println("计算alpha花费${time}毫秒")
     val res: MutableMap<Pair<Int,Int>, Double> = mutableMapOf()
-    ma1.forEach{
-        res[it.key] = it.value*alpha
+    time = measureTimeMillis {
+        ma1.forEach{
+            res[it.key] = it.value*alpha
+        }
+        ma2.forEach{
+            res[it.key] = res.getOrDefault(it.key,0.0)+(it.value*(1-alpha))
+        }
     }
-    ma2.forEach{
-        res[it.key] = res.getOrDefault(it.key,0.0)+(it.value*(1-alpha))
-    }
+    println("合并花费${time}毫秒")
     return res
 }
 
